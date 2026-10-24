@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: slidecraft
+      POSTGRES_USER: slidecraft
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-slidecraft}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slidecraft -d slidecraft"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    build: .
+    restart: "no"
+    command: ["node_modules/.bin/tsx", "server/database/migrate.ts"]
+    environment:
+      DATABASE_URL: postgres://slidecraft:${POSTGRES_PASSWORD:-slidecraft}@db:5432/slidecraft
+      APP_SECRET: ${APP_SECRET:-development-only-secret-change-me}
+      DATA_DIR: /app/.data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: .
+    restart: unless-stopped
+    command: ["node", ".output/server/index.mjs"]
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      NITRO_HOST: 0.0.0.0
+      NITRO_PORT: 3000
+      DATABASE_URL: postgres://slidecraft:${POSTGRES_PASSWORD:-slidecraft}@db:5432/slidecraft
+      APP_SECRET: ${APP_SECRET:-development-only-secret-change-me}
+      DATA_DIR: /app/.data
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      OFFICECLI_BIN: officecli
+    volumes:
+      - app_data:/app/.data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command: ["node_modules/.bin/tsx", "worker/index.ts"]
+    environment:
+      DATABASE_URL: postgres://slidecraft:${POSTGRES_PASSWORD:-slidecraft}@db:5432/slidecraft
+      APP_SECRET: ${APP_SECRET:-development-only-secret-change-me}
+      DATA_DIR: /app/.data
+      OFFICECLI_BIN: officecli
+    volumes:
+      - app_data:/app/.data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
+  app_data:

@@ -1,0 +1,3 @@
+allowBuilds:
+  '@officecli/officecli': true
+  esbuild: true
