@@ -52,6 +52,31 @@ export async function extractOfficeText(
   }
 }
 
+interface OfficeCliPayload {
+  success?: boolean
+  data?: unknown
+  message?: string
+  warnings?: Array<{ message?: string; code?: string }>
+}
+
+/**
+ * PptxGenJS intentionally emits notesMasterIdLst in a position that Microsoft
+ * PowerPoint 16 accepts but XML-schema validators reject. It also emits a third
+ * axis id for 2D charts. Rewriting either element makes PowerPoint repair the
+ * file, so only these known-compatible PptxGenJS warnings are tolerated.
+ */
+function hasOnlyPowerPointCompatiblePptxGenjsWarnings(payload: OfficeCliPayload): boolean {
+  if (payload.success !== false) return false
+  const schemaWarnings = (payload.warnings ?? [])
+    .map(warning => warning.message ?? '')
+    .filter(message => message.startsWith('[Schema]'))
+
+  if (!schemaWarnings.length) return false
+  return schemaWarnings.every(message =>
+    message.includes('notesMasterIdLst') || message.includes('chart:axId'),
+  )
+}
+
 export async function validateWithOfficeCli(
   filePath: string,
   binary = process.env.OFFICECLI_BIN || 'officecli',
@@ -64,6 +89,15 @@ export async function validateWithOfficeCli(
       windowsHide: true,
       env: { ...process.env, OFFICECLI_SKIP_UPDATE: '1' },
     })
+    const payload = parsePayload(stdout)
+    const warningCount = (payload?.warnings ?? []).filter(item => item.code === 'warning').length
+    if (payload?.success === true && warningCount === 0) {
+      return {
+        available: true,
+        valid: true,
+        message: 'Validation passed: no errors found.',
+      }
+    }
     return {
       available: true,
       valid: true,
@@ -79,6 +113,19 @@ export async function validateWithOfficeCli(
         message: 'OfficeCLI 未安装，已跳过结构验证',
       }
     }
+
+    const payload = parsePayload(err.stdout)
+    if (payload && hasOnlyPowerPointCompatiblePptxGenjsWarnings(payload)) {
+      const count = (payload.warnings ?? []).filter(item =>
+        (item.message ?? '').startsWith('[Schema]'),
+      ).length
+      return {
+        available: true,
+        valid: true,
+        message: `PowerPoint compatibility check passed; ignored ${count} known PptxGenJS schema-order warning(s).`,
+      }
+    }
+
     return {
       available: true,
       valid: false,
@@ -92,5 +139,15 @@ export async function validateWithOfficeCli(
       windowsHide: true,
       env: { ...process.env, OFFICECLI_SKIP_UPDATE: '1' },
     }).catch(() => undefined)
+  }
+}
+
+function parsePayload(stdout: string | undefined): OfficeCliPayload | undefined {
+  if (!stdout?.trim().startsWith('{')) return undefined
+  try {
+    return JSON.parse(stdout) as OfficeCliPayload
+  }
+  catch {
+    return undefined
   }
 }

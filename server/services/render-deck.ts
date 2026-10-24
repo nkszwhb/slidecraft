@@ -1,6 +1,5 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import JSZip from 'jszip'
 import PptxGenJS from 'pptxgenjs'
 import type { DeckOutline, SlideSpec } from '../../shared/domain/schemas'
 import type { ThemeDefinition } from '../../shared/theme/types'
@@ -68,7 +67,6 @@ export async function renderDeck(input: RenderDeckInput): Promise<void> {
 
   await mkdir(dirname(input.outputPath), { recursive: true })
   await pptx.writeFile({ fileName: input.outputPath })
-  await normalizePptxElementOrder(input.outputPath)
 
   // Keep these captured tokens referenced so all theme palettes are applied in decorations.
   void surface
@@ -76,53 +74,6 @@ export async function renderDeck(input: RenderDeckInput): Promise<void> {
   void muted
   void accent
   void secondary
-}
-
-/**
- * PptxGenJS 4 emits two schema violations that OfficeCLI correctly rejects:
- * notesMasterIdLst is in the wrong position, and 2D charts receive a third axId.
- * Normalize the package before it reaches validation or the user.
- */
-async function normalizePptxElementOrder(outputPath: string): Promise<void> {
-  const original = await readFile(outputPath)
-  const zip = await JSZip.loadAsync(original)
-  const presentation = zip.file('ppt/presentation.xml')
-  if (!presentation) throw new Error('Generated PPTX is missing ppt/presentation.xml')
-
-  let presentationXml = await presentation.async('string')
-  const notesMasterPattern = /<p:notesMasterIdLst\b[^>]*\/>|<p:notesMasterIdLst\b[\s\S]*?<\/p:notesMasterIdLst>/
-  const notesMaster = presentationXml.match(notesMasterPattern)?.[0]
-  if (notesMaster) {
-    presentationXml = presentationXml.replace(notesMaster, '')
-    const slideMasterEnd = presentationXml.match(/<\/p:sldMasterIdLst>/)
-    if (slideMasterEnd?.index !== undefined) {
-      const insertAt = slideMasterEnd.index + slideMasterEnd[0].length
-      presentationXml = presentationXml.slice(0, insertAt) + notesMaster + presentationXml.slice(insertAt)
-    }
-    zip.file('ppt/presentation.xml', presentationXml)
-  }
-
-  const chartPaths = Object.keys(zip.files).filter(name => /^ppt\/charts\/chart\d+\.xml$/.test(name))
-  for (const chartPath of chartPaths) {
-    const chartFile = zip.file(chartPath)
-    if (!chartFile) continue
-    let chartXml = await chartFile.async('string')
-    chartXml = chartXml.replace(
-      /<c:(barChart|lineChart)\b([^>]*)>([\s\S]*?)<\/c:\1>/g,
-      (_match, type: string, attributes: string, body: string) => {
-        let axisCount = 0
-        const fixedBody = body.replace(/<c:axId\b[^>]*\/>/g, (axis: string) => {
-          axisCount += 1
-          return axisCount <= 2 ? axis : ''
-        })
-        return `<c:${type}${attributes}>${fixedBody}</c:${type}>`
-      },
-    )
-    zip.file(chartPath, chartXml)
-  }
-
-  const normalized = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' })
-  await writeFile(outputPath, normalized)
 }
 
 function decorateBackground(pptx: Pptx, slide: Slide, theme: ThemeDefinition, index: number): void {

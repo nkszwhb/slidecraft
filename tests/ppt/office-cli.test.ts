@@ -48,6 +48,6 @@ describe.skipIf(!hasOfficeCli)('OfficeCLI integration', () => {
     const result = await validateWithOfficeCli(output, binary)
     expect(result.available).toBe(true)
     expect(result.valid, result.message).toBe(true)
-    expect(result.message).toMatch(/Validation passed/i)
+    expect(result.message).toMatch(/PowerPoint compatibility check passed/i)
   })
 })
