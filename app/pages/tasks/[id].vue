@@ -17,6 +17,7 @@ import {
   UploadCloud,
 } from 'lucide-vue-next'
 import { getTheme, THEMES, LAYOUT_DEFINITIONS } from '~~/shared/theme/catalog'
+import { clampSlideIndex } from '~~/shared/presentation/navigation'
 import type { TaskView } from '~~/shared/domain/task-view'
 import type { DeckOutline } from '~~/shared/domain/schemas'
 
@@ -28,6 +29,7 @@ const pending = ref('')
 const error = ref('')
 const outlineDraft = ref<DeckOutline | null>(null)
 const selectedTheme = ref('modern-minimal')
+const presentationIndex = ref<number | null>(null)
 const uploadInput = ref<HTMLInputElement>()
 const toast = useToast()
 let eventSource: EventSource | null = null
@@ -202,6 +204,16 @@ async function retryCurrent() {
 
 function artifactUrl(artifactId: string) {
   return `/api/tasks/${id}/artifacts/${artifactId}`
+}
+
+function startPresentation(index = 0) {
+  const slideCount = task.value?.outline?.slides.length ?? 0
+  if (!slideCount) return
+  presentationIndex.value = clampSlideIndex(index, slideCount)
+}
+
+function closePresentation() {
+  presentationIndex.value = null
 }
 
 function timeLabel(value: string) {
@@ -590,16 +602,29 @@ function timeLabel(value: string) {
                 <strong>{{ task.outline.title }}</strong>
                 <span>{{ task.outline.slides.length }} 页 · {{ theme.name }} · {{ task.ratio }}</span>
               </div>
-              <a v-if="finalArtifact" :href="artifactUrl(finalArtifact.id)" class="button button-ink">
-                <Download :size="16" />
-                下载 PPTX
-              </a>
+              <div class="delivery-actions">
+                <button type="button" class="button" @click="startPresentation(0)">
+                  <Play :size="15" />
+                  全屏演示
+                </button>
+                <a v-if="finalArtifact" :href="artifactUrl(finalArtifact.id)" class="button button-ink">
+                  <Download :size="16" />
+                  下载 PPTX
+                </a>
+              </div>
             </div>
             <div class="deck-grid">
-              <div v-for="(slide, index) in task.outline.slides" :key="slide.id" class="deck-slide">
+              <button
+                v-for="(slide, index) in task.outline.slides"
+                :key="slide.id"
+                type="button"
+                class="deck-slide"
+                :aria-label="`从第 ${index + 1} 页开始全屏演示：${slide.title}`"
+                @click="startPresentation(index)"
+              >
                 <SlideCanvas :slide="slide" :theme-id="task.themeId" :index="index" :total="task.outline.slides.length" />
                 <span>{{ String(index + 1).padStart(2, '0') }} · {{ slide.title }}</span>
-              </div>
+              </button>
             </div>
           </template>
         </article>
@@ -637,6 +662,16 @@ function timeLabel(value: string) {
         </div>
       </aside>
     </div>
+
+    <PresentationOverlay
+      v-if="task?.outline && presentationIndex !== null"
+      :slides="task.outline.slides"
+      :theme-id="task.themeId"
+      :title="task.outline.title"
+      :initial-index="presentationIndex"
+      :ratio="task.ratio"
+      @close="closePresentation"
+    />
   </div>
 </template>
 
@@ -1391,6 +1426,13 @@ function timeLabel(value: string) {
   gap: 4px;
 }
 
+.delivery-actions {
+  flex: none;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+}
+
 .delivery-banner strong {
   font-size: 18px;
   letter-spacing: -0.03em;
@@ -1412,10 +1454,31 @@ function timeLabel(value: string) {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .deck-slide :deep(.slide-canvas) {
   border: 1px solid var(--color-line);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.deck-slide:hover :deep(.slide-canvas) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgb(25 24 23 / 15%);
+}
+
+.deck-slide:focus-visible {
+  outline: none;
+}
+
+.deck-slide:focus-visible :deep(.slide-canvas) {
+  outline: 3px solid color-mix(in srgb, var(--color-accent) 55%, white);
+  outline-offset: 3px;
 }
 
 .deck-slide > span {
@@ -1648,6 +1711,12 @@ function timeLabel(value: string) {
   .selection-summary .button,
   .delivery-banner .button {
     width: 100%;
+  }
+
+  .delivery-actions {
+    width: 100%;
+    align-items: stretch !important;
+    flex-direction: column !important;
   }
 
   .stage-actions.split {
