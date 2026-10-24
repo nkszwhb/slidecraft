@@ -1,10 +1,11 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import JSZip from 'jszip'
 import { afterEach, describe, expect, it } from 'vitest'
 import { renderDeck } from '../../server/services/render-deck'
 import { THEMES } from '../../shared/theme/catalog'
-import type { DeckOutline } from '../../shared/domain/schemas'
+import { DEFAULT_PRESENTATION_SETTINGS, type DeckOutline } from '../../shared/domain/schemas'
 
 const outline: DeckOutline = {
   title: '季度业务回顾',
@@ -61,6 +62,23 @@ describe('PPTX renderer', () => {
     const bytes = await readFile(output)
     expect(bytes.subarray(0, 2).toString()).toBe('PK')
     expect(bytes.byteLength).toBeGreaterThan(20_000)
+  })
+
+  it('honors page-number and footer visibility settings', async () => {
+    const folder = await mkdtemp(join(tmpdir(), 'slidecraft-chrome-'))
+    folders.push(folder)
+    const output = join(folder, 'no-chrome.pptx')
+    await renderDeck({
+      outline,
+      theme: THEMES[0]!,
+      outputPath: output,
+      settings: { ...DEFAULT_PRESENTATION_SETTINGS, showFooter: false, showPageNumbers: false },
+    })
+
+    const zip = await JSZip.loadAsync(await readFile(output))
+    const slideXml = await zip.file('ppt/slides/slide1.xml')!.async('string')
+    expect(slideXml).not.toContain('SLIDECRAFT')
+    expect(slideXml).not.toContain('01 / 03')
   })
 
   it('renders every bundled theme without throwing', async () => {

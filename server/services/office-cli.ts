@@ -5,7 +5,7 @@ import { promisify } from 'node:util'
 
 const run = promisify(execFile)
 
-function resolveBinary(binary: string): string {
+export function resolveOfficeCliBinary(binary = 'officecli'): string {
   if (binary !== 'officecli' && existsSync(binary)) return resolve(binary)
   if (binary !== 'officecli') return binary
   const vendor = join(
@@ -30,7 +30,7 @@ export async function extractOfficeText(
   binary = process.env.OFFICECLI_BIN || 'officecli',
   maxChars = 12_000,
 ): Promise<string> {
-  const executable = resolveBinary(binary)
+  const executable = resolveOfficeCliBinary(binary)
   try {
     const { stdout } = await run(executable, ['view', filePath, 'text', '--max-lines', '200'], {
       timeout: 120_000,
@@ -81,7 +81,7 @@ export async function validateWithOfficeCli(
   filePath: string,
   binary = process.env.OFFICECLI_BIN || 'officecli',
 ): Promise<OfficeCliResult> {
-  const executable = resolveBinary(binary)
+  const executable = resolveOfficeCliBinary(binary)
   try {
     const { stdout, stderr } = await run(executable, ['validate', filePath, '--json'], {
       timeout: 120_000,

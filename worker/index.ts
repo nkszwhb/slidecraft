@@ -18,6 +18,7 @@ import {
 import { getRuntimeProvider } from '../server/services/providers'
 import { generateOutline } from '../server/services/outline'
 import { renderDeck } from '../server/services/render-deck'
+import { applyPresentationMotion } from '../server/services/motion'
 import { extractOfficeText, validateWithOfficeCli } from '../server/services/office-cli'
 import { buildAssetContext, extractInlineText } from '../server/services/assets'
 import type { TaskJobData } from '../server/utils/queue'
@@ -114,6 +115,7 @@ async function processJob(job: TaskJobData): Promise<void> {
       recipeId: task.recipeId,
       assetNames: task.assets.map(asset => asset.name),
       assetContext: assetContext.context,
+      settings: task.settings,
     })
     await completeOutline(sql, task.id, generated.outline)
     log(`outline ready for ${job.taskId}`)
@@ -140,6 +142,16 @@ async function processJob(job: TaskJobData): Promise<void> {
     outputPath,
     slideLimit,
     assetImages: images,
+    settings: task.settings,
+  })
+
+  const motion = await applyPresentationMotion(outputPath, task.outline, {
+    slideLimit,
+    binary: process.env.OFFICECLI_BIN,
+  })
+  await addTaskEvent(sql, task.id, 'motion.applied', job.stage, motion.message, {
+    available: motion.available,
+    applied: motion.applied,
   })
 
   const validation = await validateWithOfficeCli(outputPath, process.env.OFFICECLI_BIN)

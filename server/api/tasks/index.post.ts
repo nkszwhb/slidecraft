@@ -1,4 +1,4 @@
-import { createTaskSchema } from '../../../shared/domain/schemas'
+import { createTaskSchema, DEFAULT_PRESENTATION_SETTINGS } from '../../../shared/domain/schemas'
 import { requireUser } from '../../utils/auth'
 import { useDb } from '../../utils/database'
 import { readBodyValidated } from '../../utils/validation'
@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
   requireUser(event)
   const input = await readBodyValidated(event, createTaskSchema)
   const title = input.title?.trim() || input.prompt.replace(/\s+/g, ' ').trim().slice(0, 52)
-  const id = await createTask(useDb(), { ...input, title })
+  const settings = input.settings ?? DEFAULT_PRESENTATION_SETTINGS
+  const id = await createTask(useDb(), { ...input, title, settings })
   return { id }
 })

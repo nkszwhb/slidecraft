@@ -14,10 +14,13 @@
   - OpenAI Responses
   - Anthropic Messages
 - PostgreSQL 持久任务、pg-boss Worker 队列、断线恢复与步骤重试。
-- PptxGenJS 确定性渲染，OfficeCLI 可用时执行 PPTX 结构验证。
+- PptxGenJS 确定性渲染，OfficeCLI 写入 PowerPoint 原生入场动画与页面切换，并执行 PPTX 结构验证。
+- 动画风格、页面切换、元素出场、内容密度、页码与页脚首页设置。
+- AI 按页面语义分配标题、正文、要点、图片和图表动效；大纲阶段可逐页调整。
 - API Key AES-256-GCM 加密，配置读取接口不回显密钥。
 - 素材上传、PPTX 下载、全屏演示和响应式界面。
-- 全屏演示支持键盘翻页、点击/滑动翻页、自动隐藏控件和从指定缩略图开始。
+- 全屏演示支持键盘翻页、点击/滑动翻页、自动隐藏控件、元素入场动效和从指定缩略图开始。
+- 扩展路线见 [`docs/ppt-capability-roadmap.md`](docs/ppt-capability-roadmap.md)。
 
 ## 本地启动
 

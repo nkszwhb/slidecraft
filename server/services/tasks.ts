@@ -15,7 +15,11 @@ import type {
   TaskEventView,
   TaskView,
 } from '../../shared/domain/task-view'
-import type { DeckOutline } from '../../shared/domain/schemas'
+import {
+  presentationSettingsSchema,
+  type DeckOutline,
+  type PresentationSettings,
+} from '../../shared/domain/schemas'
 import { getTheme } from '../../shared/theme/catalog'
 
 interface TaskRow {
@@ -31,6 +35,7 @@ interface TaskRow {
   language: string
   ratio: string
   requirements: RequirementView | null
+  settings: PresentationSettings | Record<string, never>
   outline: DeckOutline | null
   error_message: string | null
   has_assets: boolean
@@ -78,6 +83,7 @@ export async function createTask(
     pageCount: number
     language: string
     ratio: string
+    settings: PresentationSettings
   },
 ): Promise<string> {
   const theme = getTheme(input.themeId ?? 'modern-minimal') ?? getTheme('modern-minimal')!
@@ -88,11 +94,11 @@ export async function createTask(
     await tx`
       INSERT INTO tasks (
         id, title, prompt, status, current_step, theme_id, theme_version,
-        recipe_id, page_count, language, ratio
+        recipe_id, page_count, language, ratio, settings
       ) VALUES (
         ${id}, ${input.title}, ${input.prompt}, 'waiting_input', 'requirements',
         ${theme.id}, ${theme.version}, ${input.recipeId}, ${input.pageCount},
-        ${input.language}, ${input.ratio}
+        ${input.language}, ${input.ratio}, ${sql.json(input.settings as never)}
       )
     `
     for (const step of flow) {
@@ -151,6 +157,7 @@ export async function getTask(sql: Sql, id: string): Promise<TaskView | null> {
     language: task.language,
     ratio: task.ratio,
     requirements: task.requirements,
+    settings: presentationSettingsSchema.parse(task.settings ?? {}),
     outline: task.outline,
     errorMessage: task.error_message,
     hasAssets: task.has_assets,

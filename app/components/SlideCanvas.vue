@@ -8,9 +8,15 @@ const props = withDefaults(defineProps<{
   themeId: string
   index?: number
   total?: number
+  animated?: boolean
+  showPageNumbers?: boolean
+  showFooter?: boolean
 }>(), {
   index: 0,
   total: 1,
+  animated: false,
+  showPageNumbers: true,
+  showFooter: true,
 })
 
 const theme = computed(() => getTheme(props.themeId) ?? getTheme('modern-minimal')!)
@@ -34,6 +40,33 @@ const bullets = computed(() => {
 })
 const subtitle = computed(() => String(content.value.subtitle ?? content.value.body ?? ''))
 const asStrings = (value: unknown): string[] => Array.isArray(value) ? value.map(String) : []
+
+const activeMotion = computed(() => props.animated ? (props.slide.animations ?? []) : [])
+const motionTargets = computed(() => new Set(activeMotion.value.flatMap(animation => animation.targets)))
+const motionClasses = computed(() => {
+  if (!activeMotion.value.length) return {}
+  const classes: Record<string, boolean> = {
+    'motion-enabled': true,
+    'motion-sequence': activeMotion.value.some(animation => animation.sequence === 'sequence'),
+  }
+  for (const target of motionTargets.value) classes[`motion-target-${target}`] = true
+  return classes
+})
+const motionVars = computed(() => {
+  const first = activeMotion.value[0]
+  const names = {
+    fade: 'slideMotionFade',
+    fly: 'slideMotionFly',
+    zoom: 'slideMotionZoom',
+    wipe: 'slideMotionWipe',
+    appear: 'slideMotionAppear',
+  }
+  return {
+    '--element-motion-name': names[first?.effect ?? 'fade'],
+    '--element-duration': `${first?.durationMs ?? 450}ms`,
+    '--element-delay': `${first?.delayMs ?? 0}ms`,
+  }
+})
 const isDark = computed(() => {
   const bg = theme.value.tokens.colors.background.replace('#', '')
   const r = Number.parseInt(bg.slice(0, 2), 16)
@@ -44,7 +77,11 @@ const isDark = computed(() => {
 </script>
 
 <template>
-  <div class="slide-canvas" :class="[`layout-${slide.layoutId}`, `decor-${theme.decoration}`, { dark: isDark }]" :style="vars">
+  <div
+    class="slide-canvas"
+    :class="[`layout-${slide.layoutId}`, `decor-${theme.decoration}`, { dark: isDark }, motionClasses]"
+    :style="[vars, motionVars]"
+  >
     <template v-if="slide.layoutId === 'cover'">
       <div class="cover-copy">
         <span class="slide-eyebrow">{{ content.eyebrow || 'PRESENTATION' }}</span>
@@ -180,8 +217,9 @@ const isDark = computed(() => {
     </template>
 
     <footer class="slide-footer">
-      <span>SLIDECRAFT</span>
-      <span>{{ String(index + 1).padStart(2, '0') }} / {{ String(total).padStart(2, '0') }}</span>
+      <span v-if="showFooter">SLIDECRAFT</span>
+      <span v-else />
+      <span v-if="showPageNumbers">{{ String(index + 1).padStart(2, '0') }} / {{ String(total).padStart(2, '0') }}</span>
     </footer>
   </div>
 </template>
@@ -726,5 +764,125 @@ blockquote {
 .decor-bold .slide-head h2,
 .decor-bold .cover-copy h2 {
   text-transform: uppercase;
+}
+
+.motion-target-title .cover-copy h2,
+.motion-target-title .section-copy h2,
+.motion-target-title .slide-head h2,
+.motion-target-title .closing-copy h2,
+.motion-target-title .mini-quote blockquote,
+.motion-target-title .mini-metric > strong {
+  animation-name: var(--element-motion-name);
+  animation-duration: var(--element-duration);
+  animation-delay: var(--element-delay);
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+
+.motion-target-eyebrow .slide-eyebrow,
+.motion-target-eyebrow .section-number {
+  animation-name: var(--element-motion-name);
+  animation-duration: var(--element-duration);
+  animation-delay: var(--element-delay);
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+
+.motion-target-body .cover-copy p,
+.motion-target-body .section-copy p,
+.motion-target-body .closing-copy p,
+.motion-target-body .mini-text p,
+.motion-target-body .mini-chart p,
+.motion-target-body .mini-columns p,
+.motion-target-body .mini-metric p,
+.motion-target-body .mini-metric span,
+.motion-target-body .mini-visual p,
+.motion-target-body .mini-quote small,
+.motion-target-body .mini-comparison span {
+  animation-name: var(--element-motion-name);
+  animation-duration: var(--element-duration);
+  animation-delay: calc(var(--element-delay) + 90ms);
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+
+.motion-target-items .agenda-list > div,
+.motion-target-items .mini-cards article,
+.motion-target-items .four-grid article,
+.motion-target-items .mini-process > div,
+.motion-target-items .mini-comparison article,
+.motion-target-items .mini-text li,
+.motion-target-items .mini-visual ul li,
+.motion-target-items .mini-table > div {
+  animation-name: var(--element-motion-name);
+  animation-duration: var(--element-duration);
+  animation-delay: calc(var(--element-delay) + 170ms);
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+
+.motion-target-media .visual-block,
+.motion-target-chart .mini-chart-stage {
+  animation-name: var(--element-motion-name);
+  animation-duration: var(--element-duration);
+  animation-delay: calc(var(--element-delay) + 140ms);
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+
+.motion-sequence .agenda-list > div:nth-child(2),
+.motion-sequence .mini-cards article:nth-child(2),
+.motion-sequence .four-grid article:nth-child(2),
+.motion-sequence .mini-process > div:nth-child(2),
+.motion-sequence .mini-text li:nth-child(2),
+.motion-sequence .mini-table > div:nth-child(2) {
+  animation-delay: calc(var(--element-delay) + 250ms);
+}
+
+.motion-sequence .agenda-list > div:nth-child(3),
+.motion-sequence .mini-cards article:nth-child(3),
+.motion-sequence .four-grid article:nth-child(3),
+.motion-sequence .mini-process > div:nth-child(3),
+.motion-sequence .mini-text li:nth-child(3),
+.motion-sequence .mini-table > div:nth-child(3) {
+  animation-delay: calc(var(--element-delay) + 330ms);
+}
+
+.motion-sequence .agenda-list > div:nth-child(4),
+.motion-sequence .four-grid article:nth-child(4),
+.motion-sequence .mini-process > div:nth-child(4),
+.motion-sequence .mini-text li:nth-child(4),
+.motion-sequence .mini-table > div:nth-child(4) {
+  animation-delay: calc(var(--element-delay) + 410ms);
+}
+
+.motion-sequence .mini-text li:nth-child(5),
+.motion-sequence .mini-table > div:nth-child(5) {
+  animation-delay: calc(var(--element-delay) + 490ms);
+}
+
+@keyframes slideMotionFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideMotionFly {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideMotionZoom {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideMotionWipe {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; clip-path: inset(0); }
+}
+
+@keyframes slideMotionAppear {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 </style>

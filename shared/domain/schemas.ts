@@ -1,18 +1,6 @@
 import { z } from 'zod'
 import { LAYOUT_DEFINITIONS, THEMES } from '../theme/catalog'
 
-export const createTaskSchema = z.object({
-  prompt: z.string().trim().min(10, '请至少描述 10 个字符').max(4000),
-  themeId: z.string().optional(),
-  recipeId: z.string().default('business-report'),
-  pageCount: z.coerce.number().int().min(3).max(30).default(10),
-  language: z.enum(['zh-CN', 'en-US']).default('zh-CN'),
-  ratio: z.enum(['16:9', '4:3']).default('16:9'),
-  title: z.string().trim().max(80).optional(),
-})
-
-export type CreateTaskInput = z.infer<typeof createTaskSchema>
-
 export const requirementSchema = z.object({
   topic: z.string().trim().min(2).max(120),
   audience: z.string().trim().min(1).max(120),
@@ -25,6 +13,56 @@ export const requirementSchema = z.object({
 })
 
 export type RequirementInput = z.infer<typeof requirementSchema>
+
+export const ANIMATION_EFFECTS = ['fade', 'fly', 'zoom', 'wipe', 'appear'] as const
+export const ANIMATION_TARGETS = ['title', 'eyebrow', 'body', 'items', 'media', 'chart'] as const
+export const MOTION_STYLES = ['none', 'subtle', 'dynamic', 'cinematic'] as const
+export const PAGE_TRANSITIONS = ['none', 'fade', 'push', 'wipe'] as const
+export const ELEMENT_SEQUENCES = ['group', 'sequence'] as const
+
+export const slideAnimationSchema = z.object({
+  targets: z.array(z.enum(ANIMATION_TARGETS)).min(1).max(6).default(['title']),
+  effect: z.enum(ANIMATION_EFFECTS).default('fade'),
+  direction: z.enum(['left', 'right', 'up', 'down']).optional(),
+  durationMs: z.number().int().min(200).max(2000).default(450),
+  delayMs: z.number().int().min(0).max(1500).default(0),
+  trigger: z.enum(['click', 'after', 'with']).default('after'),
+  sequence: z.enum(ELEMENT_SEQUENCES).default('group'),
+})
+
+export const deckMotionSchema = z.object({
+  style: z.enum(MOTION_STYLES).default('subtle'),
+  transition: z.enum(PAGE_TRANSITIONS).default('fade'),
+  elementSequence: z.enum(ELEMENT_SEQUENCES).default('group'),
+})
+
+export const presentationSettingsSchema = z.object({
+  motion: deckMotionSchema.default({ style: 'subtle', transition: 'fade', elementSequence: 'group' }),
+  contentDensity: z.enum(['concise', 'standard', 'detailed']).default('standard'),
+  showPageNumbers: z.boolean().default(true),
+  showFooter: z.boolean().default(true),
+})
+
+export type SlideAnimation = z.infer<typeof slideAnimationSchema>
+export type DeckMotion = z.infer<typeof deckMotionSchema>
+export type PresentationSettings = z.infer<typeof presentationSettingsSchema>
+export type AnimationEffect = (typeof ANIMATION_EFFECTS)[number]
+export type AnimationTarget = (typeof ANIMATION_TARGETS)[number]
+
+export const DEFAULT_PRESENTATION_SETTINGS: PresentationSettings = presentationSettingsSchema.parse({})
+
+export const createTaskSchema = z.object({
+  prompt: z.string().trim().min(10, '请至少描述 10 个字符').max(4000),
+  themeId: z.string().optional(),
+  recipeId: z.string().default('business-report'),
+  pageCount: z.coerce.number().int().min(3).max(30).default(10),
+  language: z.enum(['zh-CN', 'en-US']).default('zh-CN'),
+  ratio: z.enum(['16:9', '4:3']).default('16:9'),
+  title: z.string().trim().max(80).optional(),
+  settings: presentationSettingsSchema.optional(),
+})
+
+export type CreateTaskInput = z.infer<typeof createTaskSchema>
 
 const contentSchema = z.record(z.string(), z.union([z.string(), z.array(z.string())]))
 const chartSchema = z.object({
@@ -52,6 +90,7 @@ export const slideSchema = z.object({
   chart: chartSchema.optional(),
   table: tableSchema.optional(),
   notes: z.string().max(1000).optional(),
+  animations: z.array(slideAnimationSchema).max(8).default([]),
 })
 
 export const deckOutlineSchema = z.object({
@@ -59,6 +98,7 @@ export const deckOutlineSchema = z.object({
   subtitle: z.string().max(160).default(''),
   summary: z.string().max(600).default(''),
   recipeId: z.string(),
+  motion: deckMotionSchema.default({ style: 'subtle', transition: 'fade', elementSequence: 'group' }),
   slides: z.array(slideSchema).min(3).max(30),
 })
 

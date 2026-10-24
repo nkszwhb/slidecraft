@@ -1,4 +1,4 @@
-import type { DeckOutline } from './schemas'
+import type { DeckOutline, PresentationSettings } from './schemas'
 import type { TaskStatus, TaskStep } from './task'
 
 export interface RequirementView {
@@ -53,6 +53,7 @@ export interface TaskView {
   language: string
   ratio: string
   requirements: RequirementView | null
+  settings: PresentationSettings
   outline: DeckOutline | null
   errorMessage: string | null
   hasAssets: boolean

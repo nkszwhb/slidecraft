@@ -11,9 +11,13 @@ const props = withDefaults(defineProps<{
   title: string
   initialIndex?: number
   ratio?: string
+  showPageNumbers?: boolean
+  showFooter?: boolean
 }>(), {
   initialIndex: 0,
   ratio: '16:9',
+  showPageNumbers: true,
+  showFooter: true,
 })
 
 const emit = defineEmits<{ close: [] }>()
@@ -170,6 +174,9 @@ onBeforeUnmount(() => {
             :theme-id="themeId"
             :index="currentIndex"
             :total="slides.length"
+            animated
+            :show-page-numbers="showPageNumbers"
+            :show-footer="showFooter"
           />
         </Transition>
       </div>

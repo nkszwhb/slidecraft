@@ -1,6 +1,7 @@
 import { z } from 'zod'
-import { deckOutlineSchema, type DeckOutline } from '../../shared/domain/schemas'
+import { deckOutlineSchema, type DeckOutline, type PresentationSettings } from '../../shared/domain/schemas'
 import { DECK_RECIPES, LAYOUT_DEFINITIONS } from '../../shared/theme/catalog'
+import { ensureDeckMotion } from '../../shared/presentation/motion'
 import type { RuntimeProvider } from './providers'
 import { callLlm, extractJsonObject } from './llm'
 
@@ -19,6 +20,7 @@ function promptFor(input: {
   recipeId: string
   assetNames: string[]
   assetContext: string
+  settings: PresentationSettings
 }): string {
   const recipes = DECK_RECIPES.map(recipe =>
     `- ${recipe.id}: ${recipe.name}（${recipe.roles.join(' → ')}）`,
@@ -41,7 +43,13 @@ Language: ${input.requirements.language}
 Exact slide count: ${input.requirements.pageCount}
 Tone: ${input.requirements.tone}
 Constraints: ${input.requirements.constraints || 'None'}
+Content density: ${input.settings.contentDensity} (concise = fewer, shorter bullets; detailed = richer evidence and explanation)
 Recommended recipe: ${input.recipeId}
+Motion preferences:
+- Style: ${input.settings.motion.style} (none/subtle/dynamic/cinematic)
+- Page transition: ${input.settings.motion.transition}
+- Element sequence: ${input.settings.motion.elementSequence} (group = animate together, sequence = stagger items)
+
 Uploaded assets: ${input.assetNames.length ? input.assetNames.join(', ') : 'None'
 }
 
@@ -64,9 +72,23 @@ Rules:
 7. Keep bullets to at most 5, ideally 3.
 8. Include speaker notes under 220 characters per slide.
 9. Do not invent precise statistics not present in the brief. If no data is supplied, use qualitative content or a statement layout instead of fake numbers.
+10. Respect explicit animation requests in the original request, including specific pages and elements.
+
+Animation plan rules:
+- Return a top-level "motion" object using exactly the supplied style, transition and elementSequence.
+- For each slide return "animations": 0-4 rules. If style is "none", every animations array must be empty.
+- Target definitions: title = page headline; eyebrow = small kicker above the headline; body = paragraph/subtitle/quote/caption; items = bullets, steps, cards, timeline milestones, comparison rows; media = uploaded image; chart = chart or table.
+- Allowed effects: fade, fly, zoom, wipe, appear. For fly/wipe include direction left/right/up/down.
+- Use each target group at most once per slide. To stagger a step list, use ONE rule with targets ["items"] and sequence "sequence"; never emit repeated rules with the same target.
+- Put title first, then body, then items, then media/chart.
+- Animate concrete content, never footers, page numbers or background decoration.
+- When elementSequence is "sequence", set sequence "sequence" on item rules; otherwise use "group".
+- Duration 250-900ms; delay 0-300ms. First title may use trigger "click"; subsequent effects normally use "after".
+- Cover slides should animate at most title/eyebrow/body. Chart slides should include the chart target. Image layouts should include media.
+- If a page should be calm, leave its animations array empty.
 
 Required top-level shape:
-{"title":"...","subtitle":"...","summary":"...","recipeId":"${input.recipeId}","slides":[{"id":"s1","title":"...","layoutId":"cover","content":{},"bullets":[],"notes":"..."}]}`
+{"title":"...","subtitle":"...","summary":"...","recipeId":"${input.recipeId}","motion":{"style":"${input.settings.motion.style}","transition":"${input.settings.motion.transition}","elementSequence":"${input.settings.motion.elementSequence}"},"slides":[{"id":"s1","title":"...","layoutId":"cover","content":{},"bullets":[],"notes":"...","animations":[{"targets":["title"],"effect":"fade","durationMs":450,"delayMs":0,"trigger":"click","sequence":"group"}]}]}`
 }
 
 export async function generateOutline(input: {
@@ -85,6 +107,7 @@ export async function generateOutline(input: {
   recipeId: string
   assetNames: string[]
   assetContext: string
+  settings: PresentationSettings
 }): Promise<{ outline: DeckOutline; usage?: { inputTokens: number; outputTokens: number } }> {
   const basePrompt = promptFor(input)
   const schema = z.toJSONSchema(deckOutlineSchema) as Record<string, unknown>
@@ -110,7 +133,11 @@ export async function generateOutline(input: {
       if (parsed.slides.length !== input.requirements.pageCount) {
         throw new Error(`Expected ${input.requirements.pageCount} slides, received ${parsed.slides.length}`)
       }
-      return { outline: { ...parsed, recipeId: input.recipeId }, usage: response.usage }
+      const outline = ensureDeckMotion(
+        { ...parsed, recipeId: input.recipeId },
+        input.settings.motion,
+      )
+      return { outline, usage: response.usage }
     }
     catch (error) {
       lastError = error instanceof Error ? error.message : String(error)

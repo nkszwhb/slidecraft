@@ -19,6 +19,16 @@ const showAdvanced = ref(false)
 const pageCount = ref(10)
 const language = ref<'zh-CN' | 'en-US'>('zh-CN')
 const ratio = ref<'16:9' | '4:3'>('16:9')
+const settings = reactive({
+  motion: {
+    style: 'subtle' as 'none' | 'subtle' | 'dynamic' | 'cinematic',
+    transition: 'fade' as 'none' | 'fade' | 'push' | 'wipe',
+    elementSequence: 'group' as 'group' | 'sequence',
+  },
+  contentDensity: 'standard' as 'concise' | 'standard' | 'detailed',
+  showPageNumbers: true,
+  showFooter: true,
+})
 const submitting = ref(false)
 const error = ref('')
 const fileInput = ref<HTMLInputElement>()
@@ -88,6 +98,7 @@ async function submit() {
         pageCount: pageCount.value,
         language: language.value,
         ratio: ratio.value,
+        settings,
       },
     })
 
@@ -192,27 +203,86 @@ async function submit() {
             </button>
           </div>
 
-          <div v-if="showAdvanced" class="advanced-row">
-            <label>
-              <span class="field-label">页数</span>
-              <select v-model="pageCount" class="select-input">
-                <option v-for="count in [6, 8, 10, 12, 15, 20]" :key="count" :value="count">{{ count }} 页</option>
-              </select>
-            </label>
-            <label>
-              <span class="field-label">语言</span>
-              <select v-model="language" class="select-input">
-                <option value="zh-CN">简体中文</option>
-                <option value="en-US">English</option>
-              </select>
-            </label>
-            <label>
-              <span class="field-label">比例</span>
-              <select v-model="ratio" class="select-input">
-                <option value="16:9">16:9 宽屏</option>
-                <option value="4:3">4:3 经典</option>
-              </select>
-            </label>
+          <div v-if="showAdvanced" class="advanced-panel">
+            <section class="advanced-group">
+              <span class="advanced-section-title">页面与内容</span>
+              <div class="advanced-fields page-fields">
+                <label>
+                  <span class="field-label">页数</span>
+                  <select v-model="pageCount" class="select-input">
+                    <option v-for="count in [6, 8, 10, 12, 15, 20]" :key="count" :value="count">{{ count }} 页</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="field-label">语言</span>
+                  <select v-model="language" class="select-input">
+                    <option value="zh-CN">简体中文</option>
+                    <option value="en-US">English</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="field-label">比例</span>
+                  <select v-model="ratio" class="select-input">
+                    <option value="16:9">16:9 宽屏</option>
+                    <option value="4:3">4:3 经典</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="field-label">内容密度</span>
+                  <select v-model="settings.contentDensity" class="select-input">
+                    <option value="concise">精简</option>
+                    <option value="standard">标准</option>
+                    <option value="detailed">详细</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section class="advanced-group">
+              <span class="advanced-section-title">动画与切换</span>
+              <div class="advanced-fields motion-fields">
+                <label>
+                  <span class="field-label">动画风格</span>
+                  <select v-model="settings.motion.style" class="select-input">
+                    <option value="none">无动画</option>
+                    <option value="subtle">克制</option>
+                    <option value="dynamic">活力</option>
+                    <option value="cinematic">电影感</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="field-label">页面切换</span>
+                  <select v-model="settings.motion.transition" class="select-input">
+                    <option value="none">无切换</option>
+                    <option value="fade">淡入</option>
+                    <option value="push">推入</option>
+                    <option value="wipe">擦除</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="field-label">元素出场</span>
+                  <select v-model="settings.motion.elementSequence" class="select-input">
+                    <option value="group">整组出现</option>
+                    <option value="sequence">逐项出现</option>
+                  </select>
+                </label>
+              </div>
+              <p class="motion-hint">AI 会按页面内容分配标题、正文、要点、图表和图片的入场顺序；进入大纲后仍可逐页调整。</p>
+            </section>
+
+            <section class="advanced-group detail-group">
+              <span class="advanced-section-title">页面细节</span>
+              <div class="advanced-fields detail-fields">
+                <label class="advanced-toggle">
+                  <input v-model="settings.showPageNumbers" type="checkbox">
+                  <span>显示页码</span>
+                </label>
+                <label class="advanced-toggle">
+                  <input v-model="settings.showFooter" type="checkbox">
+                  <span>显示页脚品牌</span>
+                </label>
+              </div>
+            </section>
           </div>
 
           <p v-if="error" class="error-box composer-error" role="alert">{{ error }}</p>
@@ -564,13 +634,65 @@ h1 em {
   opacity: 0.7;
 }
 
-.advanced-row {
+.advanced-panel {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 16px;
   margin: 8px 12px 10px;
-  padding: 14px;
+  padding: 16px 4px 4px;
   border-top: 1px solid var(--color-line);
+}
+
+.advanced-group {
+  display: grid;
+  gap: 9px;
+}
+
+.advanced-section-title {
+  color: var(--color-ink-faint);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.advanced-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.page-fields {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.motion-fields {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.detail-fields {
+  grid-template-columns: repeat(2, max-content);
+  gap: 18px;
+}
+
+.motion-hint {
+  margin: 0;
+  color: var(--color-ink-faint);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.advanced-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-ink-soft);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.advanced-toggle input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--color-accent);
 }
 
 .composer-error {
@@ -876,7 +998,12 @@ h1 em {
     justify-content: center;
   }
 
-  .advanced-row {
+  .page-fields,
+  .motion-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .detail-fields {
     grid-template-columns: 1fr;
   }
 

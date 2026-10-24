@@ -82,7 +82,12 @@ function initializeFromTask(value: TaskView) {
     requirements.ratio = value.ratio as '16:9' | '4:3'
     requirements.constraints = value.prompt
   }
-  if (value.outline) outlineDraft.value = structuredClone(value.outline)
+  if (value.outline) {
+    const draft = structuredClone(value.outline)
+    draft.motion ??= structuredClone(value.settings.motion)
+    for (const slide of draft.slides) slide.animations ??= []
+    outlineDraft.value = draft
+  }
 }
 
 async function load() {
@@ -476,15 +481,18 @@ function timeLabel(value: string) {
             </div>
 
             <div class="outline-list">
-              <div v-for="(slide, index) in outlineDraft.slides" :key="slide.id" class="outline-row">
-                <span class="outline-index">{{ String(index + 1).padStart(2, '0') }}</span>
-                <div class="outline-main">
-                  <strong>{{ slide.title }}</strong>
-                  <span>{{ slide.bullets?.slice(0, 3).join(' · ') || Object.values(slide.content).flat().slice(0, 3).join(' · ') }}</span>
+              <div v-for="(slide, index) in outlineDraft.slides" :key="slide.id" class="outline-item">
+                <div class="outline-row">
+                  <span class="outline-index">{{ String(index + 1).padStart(2, '0') }}</span>
+                  <div class="outline-main">
+                    <strong>{{ slide.title }}</strong>
+                    <span>{{ slide.bullets?.slice(0, 3).join(' · ') || Object.values(slide.content).flat().slice(0, 3).join(' · ') }}</span>
+                  </div>
+                  <select v-model="slide.layoutId" class="select-input layout-select" :aria-label="`第 ${index + 1} 页版式`">
+                    <option v-for="layout in LAYOUT_DEFINITIONS" :key="layout.id" :value="layout.id">{{ layout.name }}</option>
+                  </select>
                 </div>
-                <select v-model="slide.layoutId" class="select-input layout-select" :aria-label="`第 ${index + 1} 页版式`">
-                  <option v-for="layout in LAYOUT_DEFINITIONS" :key="layout.id" :value="layout.id">{{ layout.name }}</option>
-                </select>
+                <SlideMotionEditor v-model="slide.animations" :motion="outlineDraft.motion" />
               </div>
             </div>
 
@@ -544,6 +552,8 @@ function timeLabel(value: string) {
                 :theme-id="task.themeId"
                 :index="index"
                 :total="task.outline.slides.length"
+                :show-page-numbers="task.settings.showPageNumbers"
+                :show-footer="task.settings.showFooter"
               />
             </div>
             <div class="proof-meta">
@@ -622,7 +632,14 @@ function timeLabel(value: string) {
                 :aria-label="`从第 ${index + 1} 页开始全屏演示：${slide.title}`"
                 @click="startPresentation(index)"
               >
-                <SlideCanvas :slide="slide" :theme-id="task.themeId" :index="index" :total="task.outline.slides.length" />
+                <SlideCanvas
+                  :slide="slide"
+                  :theme-id="task.themeId"
+                  :index="index"
+                  :total="task.outline.slides.length"
+                  :show-page-numbers="task.settings.showPageNumbers"
+                  :show-footer="task.settings.showFooter"
+                />
                 <span>{{ String(index + 1).padStart(2, '0') }} · {{ slide.title }}</span>
               </button>
             </div>
@@ -670,6 +687,8 @@ function timeLabel(value: string) {
       :title="task.outline.title"
       :initial-index="presentationIndex"
       :ratio="task.ratio"
+      :show-page-numbers="task.settings.showPageNumbers"
+      :show-footer="task.settings.showFooter"
       @close="closePresentation"
     />
   </div>
@@ -1314,13 +1333,17 @@ function timeLabel(value: string) {
   border-top: 1px solid var(--color-line);
 }
 
+.outline-item {
+  padding: 4px 0 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
 .outline-row {
   display: grid;
   grid-template-columns: 34px 1fr 112px;
   gap: 10px;
   align-items: center;
-  padding: 11px 3px;
-  border-bottom: 1px solid var(--color-line);
+  padding: 9px 3px;
 }
 
 .outline-index {
@@ -1730,6 +1753,10 @@ function timeLabel(value: string) {
 
   .layout-select {
     grid-column: 2;
+  }
+
+  .outline-item :deep(.slide-motion-editor) {
+    margin-left: 0;
   }
 }
 </style>
