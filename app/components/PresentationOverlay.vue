@@ -291,13 +291,13 @@ onBeforeUnmount(() => {
   min-height: 0;
   display: grid;
   place-items: center;
-  padding: 62px 58px 42px;
+  padding: 16px;
   touch-action: pan-y;
 }
 
 .presentation-slide-frame {
-  width: min(calc(100vw - 120px), calc((100vh - 112px) * 16 / 9));
-  max-width: 1760px;
+  width: min(calc(100vw - 32px), calc((100dvh - 32px) * 16 / 9));
+  max-width: none;
   filter: drop-shadow(0 26px 80px rgb(0 0 0 / 55%));
 }
 
@@ -389,11 +389,11 @@ onBeforeUnmount(() => {
   }
 
   .presentation-stage {
-    padding: 40px 0;
+    padding: max(6px, env(safe-area-inset-top)) 4px max(6px, env(safe-area-inset-bottom));
   }
 
   .presentation-slide-frame {
-    width: calc(100vw - 20px);
+    width: min(calc(100vw - 8px), calc((100dvh - 12px) * 16 / 9));
   }
 
   .nav-zone {
