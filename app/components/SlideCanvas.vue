@@ -29,6 +29,8 @@ const vars = computed(() => ({
   '--slide-secondary': theme.value.tokens.colors.secondary,
   '--slide-radius': `${theme.value.tokens.radius}px`,
   '--slide-display': theme.value.tokens.displayFont,
+  '--slide-title-pt': String(theme.value.tokens.titleSize),
+  '--slide-body-pt': String(theme.value.tokens.bodySize),
 }))
 
 const content = computed(() => props.slide.content)
@@ -40,6 +42,11 @@ const bullets = computed(() => {
 })
 const subtitle = computed(() => String(content.value.subtitle ?? content.value.body ?? ''))
 const asStrings = (value: unknown): string[] => Array.isArray(value) ? value.map(String) : []
+const contentEyebrow = computed(() => {
+  if (props.slide.layoutId === 'statement') return 'KEY MESSAGE'
+  if (props.slide.layoutId === 'metric') return 'KEY METRIC'
+  return ''
+})
 
 const activeMotion = computed(() => props.animated ? (props.slide.animations ?? []) : [])
 const motionTargets = computed(() => new Set(activeMotion.value.flatMap(animation => animation.targets)))
@@ -104,15 +111,14 @@ const isDark = computed(() => {
 
     <template v-else-if="slide.layoutId === 'closing'">
       <div class="closing-copy">
-        <span class="slide-eyebrow">THANK YOU</span>
         <h2>{{ slide.title }}</h2>
         <p>{{ subtitle }}</p>
       </div>
     </template>
 
     <template v-else>
-      <header class="slide-head">
-        <span class="slide-eyebrow">SLIDE {{ String(index + 1).padStart(2, '0') }}</span>
+      <header v-if="slide.layoutId !== 'metric'" class="slide-head" :class="{ 'no-eyebrow': !contentEyebrow }">
+        <span v-if="contentEyebrow" class="slide-eyebrow">{{ contentEyebrow }}</span>
         <h2>{{ slide.title }}</h2>
       </header>
 
@@ -156,8 +162,12 @@ const isDark = computed(() => {
         </div>
       </div>
 
-      <div v-else-if="['process', 'timeline'].includes(slide.layoutId)" class="mini-process">
-        <div v-for="(item, itemIndex) in bullets.slice(0, 4)" :key="itemIndex">
+      <div
+        v-else-if="['process', 'timeline'].includes(slide.layoutId)"
+        class="mini-process"
+        :style="{ gridTemplateColumns: `repeat(${Math.min(Math.max(bullets.length, 1), 5)}, 1fr)` }"
+      >
+        <div v-for="(item, itemIndex) in bullets.slice(0, 5)" :key="itemIndex">
           <span>{{ String(itemIndex + 1).padStart(2, '0') }}</span>
           <i />
           <strong>{{ item }}</strong>
@@ -238,6 +248,14 @@ const isDark = computed(() => {
   border-radius: var(--slide-radius);
   container-type: inline-size;
   isolation: isolate;
+
+  /*
+   * 1pt on a 13.333in-wide slide equals 0.1041667% of the full slide width.
+   * cqw measures the content box, which is 86% of the slide after 7% side
+   * padding, so divide by 0.86. This keeps web type scaling exactly like the
+   * pt sizes in the generated PPTX at every screen size.
+   */
+  --slide-pt: 0.121124cqw;
 }
 
 h2,
@@ -248,9 +266,9 @@ blockquote {
 
 .slide-eyebrow {
   color: var(--slide-accent);
-  font-size: clamp(5px, 1.15cqw, 10px);
+  font-size: calc(var(--slide-pt) * 10);
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
 }
 
 .cover-copy {
@@ -265,24 +283,24 @@ blockquote {
 .cover-copy h2 {
   margin: 3.5% 0 2.8%;
   max-width: 95%;
-  font-size: clamp(22px, 6.5cqw, 56px);
-  font-weight: 650;
+  font-size: calc(var(--slide-pt) * 42);
+  font-weight: 700;
   line-height: 0.98;
-  letter-spacing: -0.055em;
+  letter-spacing: 0;
 }
 
 .cover-copy p {
   max-width: 72%;
   margin: 0;
   color: var(--slide-muted);
-  font-size: clamp(7px, 1.7cqw, 14px);
+  font-size: calc(var(--slide-pt) * 19);
 }
 
 .cover-meta {
   margin-top: 8%;
   color: var(--slide-muted);
-  font-size: clamp(4px, 1cqw, 8px);
-  letter-spacing: 0.13em;
+  font-size: calc(var(--slide-pt) * 11);
+  letter-spacing: 0.07em;
 }
 
 .cover-art {
@@ -314,24 +332,24 @@ blockquote {
 
 .section-number {
   color: var(--slide-accent);
-  font-size: clamp(28px, 10cqw, 86px);
-  font-weight: 750;
+  font-size: calc(var(--slide-pt) * 70);
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: -0.06em;
+  letter-spacing: 0;
 }
 
 .section-copy h2 {
   margin: 3% 0 2%;
   max-width: 80%;
-  font-size: clamp(20px, 5.4cqw, 46px);
+  font-size: calc(var(--slide-pt) * 34);
   line-height: 1.03;
-  letter-spacing: -0.045em;
+  letter-spacing: 0;
 }
 
 .section-copy p,
 .closing-copy p {
   color: var(--slide-muted);
-  font-size: clamp(7px, 1.6cqw, 13px);
+  font-size: calc(var(--slide-pt) * 17);
 }
 
 .slide-head {
@@ -341,13 +359,17 @@ blockquote {
   margin-bottom: 5%;
 }
 
+.slide-head.no-eyebrow {
+  margin-top: 0;
+}
+
 .slide-head h2 {
   margin: 0;
   max-width: 88%;
-  font-size: clamp(15px, 4.5cqw, 38px);
-  font-weight: 650;
+  font-size: calc(var(--slide-pt) * var(--slide-title-pt));
+  font-weight: 700;
   line-height: 1.04;
-  letter-spacing: -0.045em;
+  letter-spacing: 0;
 }
 
 .agenda-list,
@@ -373,13 +395,21 @@ blockquote {
 .four-grid span,
 .mini-process span {
   color: var(--slide-accent);
-  font-size: clamp(4px, 1.1cqw, 9px);
+  font-size: calc(var(--slide-pt) * 13);
   font-weight: 700;
 }
 
+.mini-cards span {
+  font-size: calc(var(--slide-pt) * 14);
+}
+
+.mini-process span {
+  font-size: calc(var(--slide-pt) * 12);
+}
+
 .agenda-list strong {
-  font-size: clamp(8px, 2cqw, 17px);
-  font-weight: 550;
+  font-size: calc(var(--slide-pt) * 18);
+  font-weight: 400;
 }
 
 .mini-cards {
@@ -406,9 +436,9 @@ blockquote {
 }
 
 .mini-cards strong {
-  font-size: clamp(6px, 1.8cqw, 15px);
+  font-size: calc(var(--slide-pt) * 17);
   line-height: 1.25;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .four-grid {
@@ -426,8 +456,8 @@ blockquote {
 }
 
 .four-grid strong {
-  font-size: clamp(7px, 1.8cqw, 15px);
-  font-weight: 550;
+  font-size: calc(var(--slide-pt) * 18);
+  font-weight: 400;
 }
 
 .mini-chart {
@@ -464,7 +494,7 @@ blockquote {
   border: 1px solid color-mix(in srgb, var(--slide-muted) 22%, transparent);
   border-radius: var(--slide-radius);
   background: var(--slide-surface);
-  font-size: clamp(5px, 1.4cqw, 11px);
+  font-size: calc(var(--slide-pt) * 15);
   line-height: 1.55;
 }
 
@@ -484,7 +514,7 @@ blockquote {
 }
 
 .mini-table span {
-  font-size: clamp(5px, 1.3cqw, 10px);
+  font-size: calc(var(--slide-pt) * 11);
 }
 
 .mini-process {
@@ -512,8 +542,16 @@ blockquote {
 }
 
 .mini-process strong {
-  font-size: clamp(5px, 1.3cqw, 11px);
-  font-weight: 550;
+  font-size: calc(var(--slide-pt) * 13);
+  font-weight: 400;
+}
+
+.layout-timeline .mini-process span {
+  font-size: calc(var(--slide-pt) * 10);
+}
+
+.layout-timeline .mini-process strong {
+  font-size: calc(var(--slide-pt) * 11);
 }
 
 .mini-metric {
@@ -525,22 +563,22 @@ blockquote {
 
 .mini-metric > strong {
   color: var(--slide-accent);
-  font-size: clamp(36px, 13cqw, 112px);
-  font-weight: 720;
+  font-size: calc(var(--slide-pt) * 80);
+  font-weight: 700;
   line-height: 0.9;
-  letter-spacing: -0.07em;
+  letter-spacing: 0;
 }
 
 .mini-metric p {
   margin: 3% 0 1.5%;
-  font-size: clamp(9px, 2.5cqw, 21px);
-  font-weight: 600;
+  font-size: calc(var(--slide-pt) * 24);
+  font-weight: 700;
 }
 
 .mini-metric span {
   max-width: 65%;
   color: var(--slide-muted);
-  font-size: clamp(6px, 1.4cqw, 12px);
+  font-size: calc(var(--slide-pt) * 16);
 }
 
 .mini-comparison {
@@ -564,13 +602,13 @@ blockquote {
 }
 
 .mini-comparison span {
-  font-size: clamp(7px, 1.8cqw, 15px);
-  font-weight: 650;
+  font-size: calc(var(--slide-pt) * 19);
+  font-weight: 700;
 }
 
 .mini-comparison p {
   margin: 5% 0 0;
-  font-size: clamp(5px, 1.3cqw, 11px);
+  font-size: calc(var(--slide-pt) * 14);
 }
 
 .mini-quote {
@@ -584,21 +622,21 @@ blockquote {
 .mini-quote > span {
   color: var(--slide-accent);
   font-family: Georgia, serif;
-  font-size: clamp(28px, 8cqw, 68px);
+  font-size: calc(var(--slide-pt) * 80);
   line-height: 0.6;
 }
 
 .mini-quote blockquote {
   margin: 0;
-  font-size: clamp(11px, 3.1cqw, 27px);
+  font-size: calc(var(--slide-pt) * 27);
   line-height: 1.2;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
 }
 
 .mini-quote small {
   margin-top: 5%;
   color: var(--slide-muted);
-  font-size: clamp(5px, 1.2cqw, 10px);
+  font-size: calc(var(--slide-pt) * 13);
 }
 
 .mini-visual {
@@ -622,7 +660,7 @@ blockquote {
 
 .visual-block span {
   color: var(--slide-muted);
-  font-size: clamp(4px, 1cqw, 8px);
+  font-size: calc(var(--slide-pt) * 8);
   letter-spacing: 0.14em;
 }
 
@@ -632,13 +670,13 @@ blockquote {
 
 .mini-visual p {
   color: var(--slide-muted);
-  font-size: clamp(5px, 1.4cqw, 12px);
+  font-size: calc(var(--slide-pt) * 17);
   line-height: 1.6;
 }
 
 .mini-visual ul {
   padding-left: 4%;
-  font-size: clamp(5px, 1.25cqw, 10px);
+  font-size: calc(var(--slide-pt) * 17);
 }
 
 .mini-columns {
@@ -654,14 +692,18 @@ blockquote {
 }
 
 .mini-columns strong {
-  font-size: clamp(7px, 1.8cqw, 15px);
+  font-size: calc(var(--slide-pt) * 20);
 }
 
 .mini-columns p,
 .mini-text p {
   color: var(--slide-muted);
-  font-size: clamp(5px, 1.35cqw, 11px);
+  font-size: calc(var(--slide-pt) * 18);
   line-height: 1.65;
+}
+
+.mini-columns p {
+  font-size: calc(var(--slide-pt) * 15);
 }
 
 .mini-text {
@@ -677,7 +719,7 @@ blockquote {
 
 .mini-text li {
   padding-left: 2%;
-  font-size: clamp(6px, 1.55cqw, 13px);
+  font-size: calc(var(--slide-pt) * 18);
 }
 
 .closing-copy {
@@ -701,9 +743,9 @@ blockquote {
 .closing-copy h2 {
   margin: 3% 0;
   max-width: 78%;
-  font-size: clamp(24px, 6.6cqw, 58px);
+  font-size: calc(var(--slide-pt) * 43);
   line-height: 1;
-  letter-spacing: -0.05em;
+  letter-spacing: 0;
 }
 
 .slide-footer {
@@ -714,8 +756,12 @@ blockquote {
   display: flex;
   justify-content: space-between;
   color: var(--slide-muted);
-  font-size: clamp(3px, 0.85cqw, 7px);
-  letter-spacing: 0.1em;
+  font-size: calc(var(--slide-pt) * 7);
+  letter-spacing: 0.2em;
+}
+
+.slide-footer span:last-child {
+  font-size: calc(var(--slide-pt) * 8);
 }
 
 .layout-closing .slide-footer {
