@@ -55,6 +55,23 @@ random `APP_SECRET`, and should terminate TLS at a reverse proxy.
   authenticated administrator.
 - Secrets committed to a fork or a misconfigured reverse proxy.
 
+## Known upstream advisories
+
+As of 2026-10-25, Dependabot reports three high-severity advisories with no
+upstream patched release:
+
+- [GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv):
+  `node-forge <= 1.4.0`, pulled in through Nuxt's development server tooling.
+- [GHSA-5p2g-fcmc-qvqq](https://github.com/advisories/GHSA-5p2g-fcmc-qvqq):
+  `image-size <= 2.0.2`, pulled in through PptxGenJS.
+- [GHSA-w3rx-r6r6-pgpr](https://github.com/advisories/GHSA-w3rx-r6r6-pgpr):
+  `image-size <= 2.0.2`, pulled in through PptxGenJS.
+
+Mitigation: SlideCraft does not accept arbitrary image uploads. PptxGenJS
+processes trusted theme assets, and the affected `node-forge` path is used by
+Nuxt's local development tooling rather than the generated deck runtime. We will
+upgrade as soon as patched releases are available.
+
 ## Dependency and binary notices
 
 OfficeCLI is distributed under Apache-2.0; PptxGenJS is MIT-licensed. Review
