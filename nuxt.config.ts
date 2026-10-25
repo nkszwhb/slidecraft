@@ -1,3 +1,5 @@
+const appVersion = process.env.npm_package_version || '0.1.0'
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: process.env.NODE_ENV !== 'production' },
@@ -10,7 +12,7 @@ export default defineNuxtConfig({
     // time in server/utils/*, not serialized into the build.
     public: {
       appName: 'SlideCraft',
-      version: '0.1.0',
+      version: appVersion,
     },
   },
   app: {

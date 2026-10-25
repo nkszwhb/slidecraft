@@ -6,24 +6,6 @@ All notable changes to SlideCraft are documented here. The format follows
 
 ## [Unreleased]
 
-### Added
-
-- Versioned database migrations.
-- GitHub Actions CI and container publishing workflows.
-- Health endpoint and graceful Worker shutdown.
-- Login rate limiting and upload file-signature validation.
-- Community documentation, issue templates, and security policy.
-- Task/data retention script with dry-run mode.
-
-### Fixed
-
-- Read `DATABASE_URL`, `DATA_DIR`, `APP_SECRET`, and admin credentials from
-  runtime environment variables instead of Nuxt's build-time config snapshot.
-- Docker Compose now rejects example secrets unless they are replaced.
-- Docker image builds and runs as a non-root user; OfficeCLI is optional at
-  build time and degrades gracefully on restricted networks.
-- Download filenames are protected against header injection.
-
 ## [0.1.0] - 2026-10-25
 
 ### Added
@@ -41,3 +23,21 @@ All notable changes to SlideCraft are documented here. The format follows
 - Fullscreen web presentation with keyboard, click, swipe, and element motion.
 - AES-256-GCM encryption for provider API keys.
 - Docker Compose deployment and single-admin cookie authentication.
+- Versioned database migrations.
+- GitHub Actions CI and container publishing workflows.
+- Health endpoint and graceful Worker shutdown.
+- Login rate limiting and upload file-signature validation.
+- Community documentation, issue templates, and security policy.
+- Task/data retention script with dry-run mode.
+
+### Fixed
+
+- Read `DATABASE_URL`, `DATA_DIR`, `APP_SECRET`, and admin credentials from
+  runtime environment variables instead of Nuxt's build-time config snapshot.
+- Docker Compose now rejects example secrets unless they are replaced.
+- Docker image builds and runs as a non-root user; OfficeCLI is optional at
+  build time and degrades gracefully on restricted networks.
+- Download filenames are protected against header injection.
+
+[Unreleased]: https://github.com/nkszwhb/slidecraft/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/nkszwhb/slidecraft/releases/tag/v0.1.0

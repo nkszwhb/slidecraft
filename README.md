@@ -77,6 +77,12 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 docker compose up --build
 ```
 
+也可以使用已发布镜像：
+
+```bash
+docker pull ghcr.io/nkszwhb/slidecraft:v0.1.0
+```
+
 打开 `http://localhost:3000`，进入 `/settings/providers` 配置提供商、API Key、模型 ID，并把一个模型设为默认文本模型。
 
 Docker Compose 会设置 `REQUIRE_SECURE_CONFIG=true`，如果仍使用示例密码、默认数据库密码或空管理员密码，Web 会拒绝启动并给出原因。
