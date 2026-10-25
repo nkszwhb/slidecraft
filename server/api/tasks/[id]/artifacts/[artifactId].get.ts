@@ -1,6 +1,7 @@
 import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { requireUser } from '../../../../utils/auth'
+import { attachmentContentDisposition } from '../../../../utils/content-disposition'
 import { useDb } from '../../../../utils/database'
 import { safeStoragePath } from '../../../../utils/storage'
 import { requireTaskId } from '../../../../utils/validation'
@@ -19,6 +20,6 @@ export default defineEventHandler(async (event) => {
 
   setHeader(event, 'Content-Type', artifact.mimeType)
   setHeader(event, 'Content-Length', info.size)
-  setHeader(event, 'Content-Disposition', `attachment; filename="${artifact.name}"`)
+  setHeader(event, 'Content-Disposition', attachmentContentDisposition(artifact.name))
   return sendStream(event, createReadStream(path))
 })

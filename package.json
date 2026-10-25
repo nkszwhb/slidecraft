@@ -2,6 +2,9 @@
   "name": "slidecraft",
   "version": "0.1.0",
   "private": true,
+  "description": "Self-hosted AI presentation workspace that generates editable PowerPoint decks from curated themes and semantic layouts.",
+  "license": "MIT",
+  "author": "SlideCraft contributors",
   "type": "module",
   "packageManager": "pnpm@11.28.5",
   "engines": {
@@ -17,6 +20,7 @@
     "typecheck": "nuxt typecheck",
     "worker": "tsx worker/index.ts",
     "db:migrate": "tsx server/database/migrate.ts",
+    "tasks:prune": "tsx scripts/prune-tasks.ts",
     "office:check": "tsx scripts/check-officecli.ts"
   },
   "dependencies": {

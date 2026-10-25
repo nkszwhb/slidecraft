@@ -20,8 +20,6 @@ CREATE TABLE IF NOT EXISTS tasks (
   completed_at timestamptz
 );
 
-ALTER TABLE tasks ADD COLUMN IF NOT EXISTS settings jsonb NOT NULL DEFAULT '{}'::jsonb;
-
 CREATE TABLE IF NOT EXISTS task_steps (
   task_id uuid NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   step_id text NOT NULL,

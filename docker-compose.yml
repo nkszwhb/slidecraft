@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: slidecraft
       POSTGRES_USER: slidecraft
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-slidecraft}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,8 +19,7 @@ services:
     restart: "no"
     command: ["node_modules/.bin/tsx", "server/database/migrate.ts"]
     environment:
-      DATABASE_URL: postgres://slidecraft:${POSTGRES_PASSWORD:-slidecraft}@db:5432/slidecraft
-      APP_SECRET: ${APP_SECRET:-development-only-secret-change-me}
+      DATABASE_URL: postgres://slidecraft:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/slidecraft
       DATA_DIR: /app/.data
     depends_on:
       db:
@@ -29,31 +28,45 @@ services:
   web:
     build: .
     restart: unless-stopped
+    init: true
     command: ["node", ".output/server/index.mjs"]
     ports:
       - "${WEB_PORT:-3000}:3000"
     environment:
       NITRO_HOST: 0.0.0.0
       NITRO_PORT: 3000
-      DATABASE_URL: postgres://slidecraft:${POSTGRES_PASSWORD:-slidecraft}@db:5432/slidecraft
-      APP_SECRET: ${APP_SECRET:-development-only-secret-change-me}
+      DATABASE_URL: postgres://slidecraft:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/slidecraft
+      APP_SECRET: ${APP_SECRET:?Set APP_SECRET in .env}
       DATA_DIR: /app/.data
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
       OFFICECLI_BIN: officecli
+      REQUIRE_SECURE_CONFIG: "true"
     volumes:
       - app_data:/app/.data
     depends_on:
       migrate:
         condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    stop_grace_period: 15s
 
   worker:
     build: .
     restart: unless-stopped
+    init: true
     command: ["node_modules/.bin/tsx", "worker/index.ts"]
     environment:
-      DATABASE_URL: postgres://slidecraft:${POSTGRES_PASSWORD:-slidecraft}@db:5432/slidecraft
-      APP_SECRET: ${APP_SECRET:-development-only-secret-change-me}
+      DATABASE_URL: postgres://slidecraft:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/slidecraft
+      APP_SECRET: ${APP_SECRET:?Set APP_SECRET in .env}
       DATA_DIR: /app/.data
       OFFICECLI_BIN: officecli
     volumes:
@@ -61,6 +74,7 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+    stop_grace_period: 35s
 
 volumes:
   postgres_data:

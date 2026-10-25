@@ -54,11 +54,9 @@ export async function renderDeck(input: RenderDeckInput): Promise<void> {
   pptx.company = 'SlideCraft'
   pptx.subject = outline.title
   pptx.title = outline.title
-  pptx.lang = outline.slides.some(slide => /[\u4e00-\u9fff]/.test(slide.title)) ? 'zh-CN' : 'en-US'
   pptx.theme = {
     headFontFace: tokens.displayFont,
     bodyFontFace: tokens.bodyFont,
-    lang: pptx.lang,
   }
 
   const slides = outline.slides.slice(0, input.slideLimit ?? outline.slides.length)
@@ -179,7 +177,7 @@ function renderSlide(
       eyebrow(valueOf(spec, 'eyebrow') || 'PRESENTATION')
       slide.addText(title, {
         ...baseText, x: 1.02, y: 1.5, w: 10.7, h: 2.2,
-        fontFace: theme.tokens.displayFont, fontSize: 42, bold: true, valign: 'mid', margin: 0,
+        fontFace: theme.tokens.displayFont, fontSize: 42, bold: true, valign: 'middle', margin: 0,
         objectName: 'motion-title',
       })
       slide.addText(valueOf(spec, 'subtitle') || valueOf(spec, 'body'), {
@@ -231,7 +229,7 @@ function renderSlide(
       eyebrow('KEY MESSAGE')
       slide.addText(title, {
         ...baseText, x: 1.0, y: 1.8, w: 11.2, h: 2.1,
-        fontFace: theme.tokens.displayFont, fontSize: 35, bold: true, valign: 'mid', margin: 0,
+        fontFace: theme.tokens.displayFont, fontSize: 35, bold: true, valign: 'middle', margin: 0,
       })
       slide.addText(valueOf(spec, 'body'), {
         ...baseText, x: 1.02, y: 4.2, w: 9.8, h: 1.2, fontSize: 18, color: color(c.muted), margin: 0,
@@ -431,7 +429,7 @@ function renderSlide(
           x: 0.66, y: 1.9, w: 11.95,
           fontFace: theme.tokens.bodyFont, fontSize: 11,
           border: { type: 'solid', color: color(c.muted), pt: 0.5 },
-          margin: 0.08, valign: 'mid', autoPage: false, objectName: 'motion-table',
+          margin: 0.08, valign: 'middle', autoPage: false, objectName: 'motion-table',
         })
       }
       break
@@ -443,7 +441,7 @@ function renderSlide(
       })
       slide.addText(valueOf(spec, 'quote') || title, {
         ...baseText, x: 1.15, y: 2.0, w: 10.9, h: 2.35,
-        fontFace: theme.tokens.displayFont, fontSize: 27, valign: 'mid', margin: 0,
+        fontFace: theme.tokens.displayFont, fontSize: 27, valign: 'middle', margin: 0,
         objectName: 'motion-title',
       })
       slide.addText(valueOf(spec, 'source'), {
@@ -474,7 +472,7 @@ function renderSlide(
       slide.addText(title || 'Thank you', {
         x: 0.9, y: 2.25, w: 11.3, h: 1.5,
         fontFace: theme.tokens.displayFont, fontSize: 43, bold: true,
-        color: color(c.background), valign: 'mid', margin: 0, objectName: 'motion-title',
+        color: color(c.background), valign: 'middle', margin: 0, objectName: 'motion-title',
       })
       slide.addText(valueOf(spec, 'subtitle'), {
         x: 0.93, y: 4.0, w: 9.5, h: 0.8, fontSize: 17, color: color(c.background), margin: 0,
@@ -504,8 +502,8 @@ function renderSlide(
         }
         else {
           slide.addShape(pptx.ShapeType.rect, {
-            x: 0, y: 4.65, w: 13.333, h: 2.85, fill: { color: bg, transparency: 8 },
-            line: { color: bg, transparency: 100 },
+            x: 0, y: 4.65, w: 13.333, h: 2.85, fill: { color: color(c.background), transparency: 8 },
+            line: { color: color(c.background), transparency: 100 },
           })
           slide.addText(title, {
             ...baseText, x: 0.66, y: 5.0, w: 11.5, h: 0.8,

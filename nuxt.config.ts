@@ -1,19 +1,16 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  devtools: { enabled: true },
+  devtools: { enabled: process.env.NODE_ENV !== 'production' },
   css: [
     '@fontsource-variable/inter/index.css',
     '~/assets/css/main.css',
   ],
   runtimeConfig: {
-    databaseUrl: process.env.DATABASE_URL || 'postgres://slidecraft:slidecraft@localhost:5432/slidecraft',
-    appSecret: process.env.APP_SECRET || '',
-    dataDir: process.env.DATA_DIR || './.data',
-    officeCliBin: process.env.OFFICECLI_BIN || 'officecli',
-    adminEmail: process.env.ADMIN_EMAIL || 'admin@example.com',
-    adminPassword: process.env.ADMIN_PASSWORD || '',
+    // Server secrets and deployment paths are read from process.env at request
+    // time in server/utils/*, not serialized into the build.
     public: {
       appName: 'SlideCraft',
+      version: '0.1.0',
     },
   },
   app: {

@@ -13,9 +13,8 @@ let bossPromise: Promise<PgBoss> | undefined
 
 export async function getBoss(): Promise<PgBoss> {
   if (!bossPromise) {
-    const config = useRuntimeConfig()
     const boss = new PgBoss({
-      connectionString: config.databaseUrl,
+      connectionString: process.env.DATABASE_URL,
       schema: 'pgboss',
     })
     boss.on('error', (error: unknown) => console.error('[queue]', error))

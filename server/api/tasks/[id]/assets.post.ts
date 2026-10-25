@@ -2,22 +2,10 @@ import { randomUUID } from 'node:crypto'
 import { extname } from 'node:path'
 import { requireUser } from '../../../utils/auth'
 import { useDb } from '../../../utils/database'
+import { validateUpload } from '../../../utils/file-signature'
 import { taskStorageKey, writeStorageFile } from '../../../utils/storage'
 import { requireTaskId } from '../../../utils/validation'
 import { registerAsset } from '../../../services/tasks'
-
-const ALLOWED = new Map([
-  ['application/pdf', '.pdf'],
-  ['application/vnd.openxmlformats-officedocument.presentationml.presentation', '.pptx'],
-  ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.docx'],
-  ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.xlsx'],
-  ['text/plain', '.txt'],
-  ['text/markdown', '.md'],
-  ['text/csv', '.csv'],
-  ['image/png', '.png'],
-  ['image/jpeg', '.jpg'],
-  ['image/webp', '.webp'],
-])
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024
 
@@ -33,27 +21,23 @@ export default defineEventHandler(async (event) => {
 
   const suppliedMime = file.type?.split(';')[0] ?? 'application/octet-stream'
   const originalExtension = extname(file.filename ?? '').toLowerCase()
-  const expectedExtension = ALLOWED.get(suppliedMime)
-  const extension = expectedExtension ?? (
-    ['.pdf', '.pptx', '.docx', '.xlsx', '.txt', '.md', '.csv', '.png', '.jpg', '.jpeg', '.webp']
-      .includes(originalExtension) ? originalExtension : undefined
-  )
-  if (!extension) {
-    throw createError({ statusCode: 415, statusMessage: '暂不支持这种文件类型' })
+  const validated = await validateUpload(file.data, suppliedMime, originalExtension)
+  if (!validated.ok || !validated.extension || !validated.mimeType) {
+    throw createError({ statusCode: 415, statusMessage: validated.message ?? '暂不支持这种文件类型' })
   }
 
   const purposePart = parts?.find(part => part.name === 'purpose')
   const purpose = purposePart?.data.toString('utf8') === 'style' ? 'style' : 'content'
   const assetId = randomUUID()
-  const storageKey = taskStorageKey(taskId, 'assets', `${assetId}${extension}`)
+  const storageKey = taskStorageKey(taskId, 'assets', `${assetId}${validated.extension}`)
   await writeStorageFile(storageKey, file.data)
 
   await registerAsset(useDb(), {
     id: assetId,
     taskId,
-    name: file.filename ?? `asset${extension}`,
+    name: file.filename ?? `asset${validated.extension}`,
     storageKey,
-    mimeType: suppliedMime,
+    mimeType: validated.mimeType,
     sizeBytes: file.data.length,
     purpose,
   })

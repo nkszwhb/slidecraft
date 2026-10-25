@@ -3,9 +3,26 @@ import type { H3Event } from 'h3'
 
 const COOKIE_NAME = 'slidecraft_session'
 
+export function adminEmail(): string {
+  return process.env.ADMIN_EMAIL || 'admin@example.com'
+}
+
+export function adminPassword(): string {
+  return process.env.ADMIN_PASSWORD || ''
+}
+
+function appSecret(): string {
+  return process.env.APP_SECRET || ''
+}
+
 function secret(): string {
-  const config = useRuntimeConfig()
-  return config.appSecret || config.adminPassword || 'development-only-secret'
+  if (adminPassword() && !appSecret()) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'APP_SECRET is required when authentication is enabled',
+    })
+  }
+  return appSecret() || 'development-only-secret'
 }
 
 function signature(expires: number): string {
@@ -13,8 +30,7 @@ function signature(expires: number): string {
 }
 
 export function authRequired(): boolean {
-  const config = useRuntimeConfig()
-  return Boolean(config.adminPassword)
+  return Boolean(adminPassword())
 }
 
 export function createSessionToken(): string {

@@ -2,8 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, normalize, resolve } from 'node:path'
 
 export function dataRoot(): string {
-  const config = useRuntimeConfig()
-  return resolve(config.dataDir)
+  return resolve(process.env.DATA_DIR || './.data')
 }
 
 export function safeStoragePath(key: string): string {
