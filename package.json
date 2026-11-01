@@ -25,11 +25,11 @@
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
-    "@officecli/officecli": "1.0.158",
+    "@officecli/officecli": "1.0.159",
     "dotenv": "^18.0.9",
     "jszip": "^3.10.2",
     "lucide-vue-next": "^1.0.0",
-    "nuxt": "4.6.2",
+    "nuxt": "4.6.3",
     "pg-boss": "^12.38.0",
     "postgres": "^3.4.9",
     "pptxgenjs": "^4.0.1",
