@@ -36,8 +36,8 @@ importers:
         specifier: ^4.0.1
         version: 4.0.1
       unpdf:
-        specifier: ^1.9.1
-        version: 1.9.1
+        specifier: ^2.0.0
+        version: 2.0.0
       vue:
         specifier: ^3.5.44
         version: 3.5.44(typescript@5.9.3)
@@ -2851,9 +2851,9 @@ packages:
       rolldown:
         optional: true
 
-  unpdf@1.9.1:
-    resolution: {integrity: sha512-nO1npM2kNyd4hj1fKzUVU6bvnWjDSxI97eycM/DgzI83dYyW+pNRI9NeMQVEfef8fI3Q06i9lkMeE1HxrQqKoA==}
-    engines: {node: '>=22'}
+  unpdf@2.0.0:
+    resolution: {integrity: sha512-dh6HL3IqnKzJFJ8KWblwd0yd4BC+GgOa7GIs514htpmMlfkOZjbZYDQKuQwm2DxsVvaoOomXfzVR3+/pf+jJnQ==}
+    engines: {node: '>=24'}
     peerDependencies:
       '@napi-rs/canvas': ^0.1.69 || ^1.0.0
     peerDependenciesMeta:
@@ -6379,7 +6379,7 @@ snapshots:
       - vite
       - webpack
 
-  unpdf@1.9.1: {}
+  unpdf@2.0.0: {}
 
   unplugin-utils@0.3.2:
     dependencies:
